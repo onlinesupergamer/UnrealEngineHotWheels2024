@@ -76,6 +76,8 @@ protected:
 	void Accelerate(float Value);
 	void Friction();
 	void CounterSteer(float InputValue);
+
+	UFUNCTION()
 	void CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	void GetCarSpeed();
 	void GroundedCheck();

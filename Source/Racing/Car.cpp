@@ -148,7 +148,7 @@ void ACar::Accelerate(float Value)
 	{
 
 		CarModel->AddForce(GetActorForwardVector() * ((EngineTorque * EngineCurve->GetFloatValue(CurrentSpeed)) * Value), TEXT("None"), true);
-		GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, FString::SanitizeFloat(EngineCurve->GetFloatValue(CurrentSpeed)));
+		//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, FString::SanitizeFloat(EngineCurve->GetFloatValue(CurrentSpeed)));
 
 	}
 
@@ -192,14 +192,18 @@ void ACar::CounterSteer(float InputValue)
 
 void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2.5f, FColor::Green, TEXT("jfdjfjdjf"));
+	FVector NewRotVelocity = CarModel->GetPhysicsAngularVelocityInRadians();
+	NewRotVelocity.X = 0.0f;
+	NewRotVelocity.Y = 0.0f;
+	//NewRotVelocity.Z = 0.0f;
+	CarModel->SetPhysicsAngularVelocityInRadians(NewRotVelocity);
 }
 
 void ACar::GetCarSpeed() 
 {
 	float m_CurrentSpeed = FVector::DotProduct(GetVelocity(), GetActorForwardVector());
 	m_CurrentSpeed = FMath::Abs(FMath::TruncToInt(m_CurrentSpeed));
-	GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::SanitizeFloat(m_CurrentSpeed));
+	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::SanitizeFloat(m_CurrentSpeed));
 	CurrentSpeed = m_CurrentSpeed;
 
 }
@@ -219,7 +223,7 @@ void ACar::GroundedCheck()
 
 void ACar::HandleGravity() 
 {
-	if (bIsGrounded) 
+	if (bIsGrounded && CurrentSpeed >= 650.0f) 
 	{
 		GravityDirection = -GetActorUpVector();
 	}
