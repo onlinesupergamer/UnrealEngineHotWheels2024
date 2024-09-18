@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "WheelCastComponent.h"
+#include "Components/SpotLightComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "PhysXPublicCore.h"
@@ -24,10 +25,10 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float EngineTorque = 1000.0f;
+	float EngineTorque = 2800.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float SteerTorque = 5.0f;
+	float SteerTorque = 2.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UCurveFloat* EngineCurve;
@@ -40,22 +41,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float RayDistance = 35.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Stiffness = 10000.0f;
+	float Stiffness = 50000.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float RestLength = 40.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float DamperValue = 500.0f;
+	float DamperValue = 1500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float CounterSteerForce = 5.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float FrictionMultiplier = 5.0f;
-
+	float FrictionMultiplier = 3.0f;
+	float AccelerationValue = 0.0f;
+	float SteeringValue = 0.0f;
 	float CurrentSpeed;
 	bool bIsGrounded;
 	FVector GravityDirection;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float GravityForce = 100.0f;
+	float GravityForce = 1500.0f;
 	bool bWasPreviouslyInAir = false;
 
 
@@ -63,7 +65,8 @@ public:
 	TArray<class UWheelCastComponent*> WheelComponents;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<UStaticMeshComponent*> WheelModels;
-
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<USpotLightComponent*> HeadLights;
 	
 
 

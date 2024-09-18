@@ -21,16 +21,20 @@ ACar::ACar()
 	m_bIsGrounded.SetNum(4);
 	WheelModels.SetNum(4);
 	WheelOffset.SetNum(4);
+	HeadLights.SetNum(2);
+	//Headlight amount could be a variable for each car
 
 	CarModel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Car Mesh"));
 	CarModel->SetupAttachment(RootComponent);
 	CarModel->SetSimulatePhysics(true);
 
 	SetupWheels();
+
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Camera Arm"));
 	CameraArm->SetupAttachment(CarModel);
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Player Camera"));
 	PlayerCamera->SetupAttachment(CameraArm);
+	
 	CameraArm->bUsePawnControlRotation = true;
 	CameraArm->SocketOffset = FVector(0, 0, 75);
 	CameraArm->TargetArmLength = 350.0f;
@@ -55,11 +59,12 @@ void ACar::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	DirectionCheck();
 	GenerateRaycasts(DeltaTime);
-	HandleGravity();
 	GroundedCheck();
+	HandleGravity();
 	Friction();
 	GetCarSpeed();
 	HandleLanding();
+	WheelAnimations();
 
 }
 
@@ -92,12 +97,16 @@ void ACar::SetupWheels()
 	WheelModels[2] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Rear Left Wheel"));
 	WheelModels[3] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Rear Right Wheel"));
 
-	WheelModels[0]->SetupAttachment(CarModel);
-	WheelModels[1]->SetupAttachment(CarModel);
-	WheelModels[2]->SetupAttachment(CarModel);
-	WheelModels[3]->SetupAttachment(CarModel);
+	WheelModels[0]->SetupAttachment(WheelComponents[0]);
+	WheelModels[1]->SetupAttachment(WheelComponents[1]);
+	WheelModels[2]->SetupAttachment(WheelComponents[2]);
+	WheelModels[3]->SetupAttachment(WheelComponents[3]);
 
+	HeadLights[0] = CreateDefaultSubobject<USpotLightComponent>("HeadLight Left");
+	HeadLights[1] = CreateDefaultSubobject<USpotLightComponent>("HeadLight Right");
 
+	HeadLights[0]->SetupAttachment(CarModel);
+	HeadLights[1]->SetupAttachment(CarModel);
 
 
 
@@ -191,7 +200,7 @@ void ACar::Accelerate(float Value)
 
 	}
 
-
+	AccelerationValue = Value;
 }
 
 void ACar::Steer(float Value) 
@@ -201,11 +210,82 @@ void ACar::Steer(float Value)
 		CarModel->AddTorqueInRadians(GetActorUpVector() * (SteerTorque * Value), TEXT("None"), true);
 		CounterSteer(Value);
 	}
+
+	SteeringValue = Value;
 }
 
 void ACar::WheelAnimations() 
 {
-	//FQuat 
+	int Direction;
+
+	if (FVector::DotProduct(GetVelocity(), GetActorForwardVector())) 
+	{
+		Direction = 1;
+	}
+
+	else
+	{	
+		if (bIsGrounded) 
+		{
+			Direction = -1;
+
+		}
+
+	}
+
+	for (int i = 0; i < WheelModels.Num(); i++) 
+	{
+		if (bIsGrounded) 
+		{
+			if (i < 2)
+			{
+				float WheelCirc = 2 * 3.14f * WheelOffset[i];
+				float RotAmount = CurrentSpeed / WheelCirc;
+				WheelModels[i]->AddLocalRotation(FQuat(FRotator(-RotAmount * Direction, 0, 0)));
+			}
+
+			if (i > 1)
+			{
+				if (AccelerationValue != 0)
+				{
+					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-AccelerationValue * 10.0f, 0, 0)));
+				}
+
+				else
+				{
+					float WheelCirc = 2 * 3.14f * WheelOffset[i];
+					float RotAmount = CurrentSpeed / WheelCirc;
+					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-RotAmount * Direction, 0, 0)));
+				}
+			}
+		}
+
+		else 
+		{
+			if (i > 1) 
+			{
+				if (AccelerationValue != 0) 
+				{
+					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-AccelerationValue * 10.0f, 0, 0)));
+
+				}
+
+				else 
+				{
+					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-3.0f * Direction, 0, 0)));
+
+				}
+			}
+
+			if (i < 2) 
+			{
+				WheelModels[i]->AddLocalRotation(FQuat(FRotator(-3.0f * Direction, 0, 0)));
+
+			}
+
+		}
+	}
+
 	
 }
 
@@ -307,7 +387,7 @@ void ACar::GroundedCheck()
 
 void ACar::HandleGravity() 
 {
-	if (bIsGrounded && CurrentSpeed >= 650.0f) 
+	if (bIsGrounded && CurrentSpeed >= 650) 
 	{
 		GravityDirection = -GetActorUpVector();
 	}
