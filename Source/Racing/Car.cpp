@@ -216,7 +216,7 @@ void ACar::Steer(float Value)
 
 void ACar::WheelAnimations() 
 {
-	int Direction;
+	int Direction = 1;
 
 	if (FVector::DotProduct(GetVelocity(), GetActorForwardVector())) 
 	{
@@ -286,7 +286,9 @@ void ACar::WheelAnimations()
 		}
 	}
 
-	
+	WheelComponents[0]->SetRelativeRotation(FQuat(FRotator(0, 25 * SteeringValue, 0)));
+	WheelComponents[1]->SetRelativeRotation(FQuat(FRotator(0, 25 * SteeringValue, 0)));
+
 }
 
 void ACar::Friction() 

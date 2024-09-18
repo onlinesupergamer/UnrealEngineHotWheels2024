@@ -25,7 +25,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float EngineTorque = 2800.0f;
+	float EngineTorque = 3200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float SteerTorque = 2.5f;
@@ -39,11 +39,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintreadOnly)
 	class UCameraComponent* PlayerCamera;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float RayDistance = 35.0f;
+	float RayDistance = 50.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Stiffness = 50000.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float RestLength = 40.0f;
+	float RestLength = 45.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float DamperValue = 1500.0f;
 
