@@ -56,10 +56,13 @@ public:
 	FVector GravityDirection;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float GravityForce = 100.0f;
+	bool bWasPreviouslyInAir = false;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<class UWheelCastComponent*> WheelComponents;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<UStaticMeshComponent*> WheelModels;
 
 	
 
@@ -76,13 +79,17 @@ protected:
 	void Accelerate(float Value);
 	void Friction();
 	void CounterSteer(float InputValue);
+	void WheelAnimations();
 
 	UFUNCTION()
 	void CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	void GetCarSpeed();
 	void GroundedCheck();
 	void HandleGravity();
-	
+	void HandleLanding();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<float> WheelOffset;
 	TArray<float> m_Length;
 	TArray<float> m_LastLength;
 	TArray<float> m_Velocity;
