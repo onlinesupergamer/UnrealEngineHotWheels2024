@@ -57,7 +57,7 @@ void ACar::BeginPlay()
 void ACar::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	DirectionCheck();
+	//DirectionCheck();
 	GenerateRaycasts(DeltaTime);
 	GroundedCheck();
 	HandleGravity();
@@ -108,11 +108,9 @@ void ACar::SetupWheels()
 	HeadLights[0]->SetupAttachment(CarModel);
 	HeadLights[1]->SetupAttachment(CarModel);
 
-
-
 	/*
 		This function could be optimized as a forloop
-	
+		Maybe
 	*/
 
 }
@@ -131,12 +129,12 @@ void ACar::GenerateRaycasts(float DeltaTime)
 			{
 				if (bIsGrounded)
 				{
-					bWasPreviouslyInAir = false;
+					bWasInAirLastFrame = false;
 				}
 
 				else 
 				{
-					bWasPreviouslyInAir = true;
+					bWasInAirLastFrame = true;
 
 				}
 
@@ -151,8 +149,6 @@ void ACar::GenerateRaycasts(float DeltaTime)
 				FVector NewLocation = WheelModels[i]->GetRelativeLocation();
 				NewLocation.Z = -m_Length[i] + WheelOffset[i];
 				WheelModels[i]->SetRelativeLocation(NewLocation);
-				
-
 			}
 
 			else 
@@ -161,17 +157,11 @@ void ACar::GenerateRaycasts(float DeltaTime)
 				FVector NewLocation = WheelModels[i]->GetRelativeLocation();
 				NewLocation.Z = -RayDistance + WheelOffset[i];
 				WheelModels[i]->SetRelativeLocation(NewLocation);
-				
-
 			}
 
-			DrawDebugLine(GetWorld(), WheelComponents[i]->GetComponentLocation(), EndLocation, FColor::Green, false, 0.0f);
-
+			//DrawDebugLine(GetWorld(), WheelComponents[i]->GetComponentLocation(), EndLocation, FColor::Green, false, 0.0f);
 		}
-
 	}
-
-
 }
 
 void ACar::CameraLookUp(float Value) 
@@ -182,7 +172,6 @@ void ACar::CameraLookUp(float Value)
 void ACar::CameraLookRight(float Value) 
 {
 	AddControllerYawInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
-
 }
 
 void ACar::Accelerate(float Value) 
@@ -194,10 +183,8 @@ void ACar::Accelerate(float Value)
 		{
 			return;
 		}
-
 		CarModel->AddForce(GetActorForwardVector() * ((EngineTorque * EngineCurve->GetFloatValue(CurrentSpeed)) * Value), TEXT("None"), true);
 		//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, FString::SanitizeFloat(EngineCurve->GetFloatValue(CurrentSpeed)));
-
 	}
 
 	AccelerationValue = Value;
@@ -230,7 +217,6 @@ void ACar::WheelAnimations()
 			Direction = -1;
 
 		}
-
 	}
 
 	for (int i = 0; i < WheelModels.Num(); i++) 
@@ -243,14 +229,12 @@ void ACar::WheelAnimations()
 				float RotAmount = CurrentSpeed / WheelCirc;
 				WheelModels[i]->AddLocalRotation(FQuat(FRotator(-RotAmount * Direction, 0, 0)));
 			}
-
 			if (i > 1)
 			{
 				if (AccelerationValue != 0)
 				{
 					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-AccelerationValue * 10.0f, 0, 0)));
 				}
-
 				else
 				{
 					float WheelCirc = 2 * 3.14f * WheelOffset[i];
@@ -259,7 +243,6 @@ void ACar::WheelAnimations()
 				}
 			}
 		}
-
 		else 
 		{
 			if (i > 1) 
@@ -267,28 +250,20 @@ void ACar::WheelAnimations()
 				if (AccelerationValue != 0) 
 				{
 					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-AccelerationValue * 10.0f, 0, 0)));
-
 				}
-
 				else 
 				{
 					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-3.0f * Direction, 0, 0)));
-
 				}
 			}
-
 			if (i < 2) 
 			{
 				WheelModels[i]->AddLocalRotation(FQuat(FRotator(-3.0f * Direction, 0, 0)));
-
 			}
-
 		}
 	}
-
 	WheelComponents[0]->SetRelativeRotation(FQuat(FRotator(0, 25 * SteeringValue, 0)));
 	WheelComponents[1]->SetRelativeRotation(FQuat(FRotator(0, 25 * SteeringValue, 0)));
-
 }
 
 void ACar::Friction() 
@@ -298,8 +273,6 @@ void ACar::Friction()
 		float SidewaysSpeed = FVector::DotProduct(GetVelocity(), GetActorRightVector());
 		CarModel->AddForce((-GetActorRightVector() * SidewaysSpeed) * FrictionMultiplier, TEXT("None"), true);
 	}
-
-	
 }
 
 void ACar::CounterSteer(float InputValue) 
@@ -307,20 +280,16 @@ void ACar::CounterSteer(float InputValue)
 	FVector RotationalVelocity = CarModel->GetPhysicsAngularVelocityInRadians();
 	float RotationSpeed = FVector::DotProduct(RotationalVelocity, GetActorUpVector());
 	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::SanitizeFloat(RotationSpeed));
-
 	if (InputValue == 0) 
 	{
 		CarModel->AddTorqueInRadians((-GetActorUpVector() * RotationSpeed) * 5.0f, TEXT("None"), true);
 		//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, TEXT("No Steering Input"));
-
 	}
 
 }
 
 void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	
-
 	if (!OtherActor->ActorHasTag(TEXT("Track"))) 
 	{
 		float P = FVector::DotProduct(Hit.ImpactNormal, GetActorForwardVector());
@@ -335,11 +304,18 @@ void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 				float UpwardForce = FVector::DotProduct(GetActorUpVector(), GetVelocity());
 				float ForwardImpactForce = FVector::DotProduct(GetActorForwardVector(), GetVelocity());
 				float UpwardRotationalForce = FVector::DotProduct(GetActorRightVector(), CarModel->GetPhysicsAngularVelocityInRadians());
-				CarModel->SetPhysicsAngularVelocityInRadians(FVector(0,0,0));
-				CarModel->SetPhysicsLinearVelocity(FVector(0,0,0));
-				CarModel->SetPhysicsAngularVelocityInRadians(-CarModel->GetRightVector() * 5.0f);
+				float XRotVel = CarModel->GetPhysicsAngularVelocityInRadians().X;
+				float YRotVel = CarModel->GetPhysicsAngularVelocityInRadians().Y;
+				float ZRotVel = CarModel->GetPhysicsAngularVelocityInRadians().Z;
+				float XVel = CarModel->GetPhysicsLinearVelocity().X;
+				float YVel = CarModel->GetPhysicsLinearVelocity().Y;
+				float ZVel = CarModel->GetPhysicsLinearVelocity().Z;
+				CarModel->SetPhysicsAngularVelocityInRadians(FVector(XRotVel,YRotVel,0));
+				CarModel->SetPhysicsLinearVelocity(FVector(0,YVel,0));
+				//CarModel->AddForce(-GetActorUpVector() * UpwardForce, TEXT("None"), true);
+				//CarModel->AddTorqueInRadians(-GetActorRightVector() * UpwardRotationalForce, TEXT("None"), true);
+				//CarModel->SetPhysicsAngularVelocityInRadians(-CarModel->GetRightVector() * 5.0f);
 				//Reduce Collision Impulse;
-
 			}
 		}
 
@@ -347,22 +323,17 @@ void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 		{
 			FVector PrevRotVelocity = CarModel->GetPhysicsAngularVelocityInRadians();
 		}
-
-
 		//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Yellow, FString::FromInt(TDeg));
-
-		
 	}
 
 }
 
 void ACar::HandleLanding() 
 {
-	if (bWasPreviouslyInAir) 
+	if (bWasInAirLastFrame) 
 	{
 		
 	}
-
 }
 
 void ACar::GetCarSpeed() 
@@ -401,16 +372,18 @@ void ACar::HandleGravity()
 	CarModel->AddForce(GravityDirection * GravityForce, TEXT("None"), true);
 }
 
-
-
-
 void ACar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	PlayerInputComponent->BindAxis("LookUp", this, &ACar::CameraLookUp);
 	PlayerInputComponent->BindAxis("LookRight", this, &ACar::CameraLookRight);
 	PlayerInputComponent->BindAxis("Accelerate", this, &ACar::Accelerate);
 	PlayerInputComponent->BindAxis("Steer", this, &ACar::Steer);
+}
 
+float ACar::QLerp(float f1, float f2, float LerpSpeed) 
+{
+	float f = FMath::Lerp(f1, f2, (1.0f / LerpSpeed) * GetWorld()->DeltaTimeSeconds);
+	return f;
 }
 
 

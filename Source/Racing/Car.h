@@ -58,7 +58,7 @@ public:
 	FVector GravityDirection;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float GravityForce = 1500.0f;
-	bool bWasPreviouslyInAir = false;
+	bool bWasInAirLastFrame = false;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -90,6 +90,7 @@ protected:
 	void GroundedCheck();
 	void HandleGravity();
 	void HandleLanding();
+	float QLerp(float f1, float f2, float LerpSpeed);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<float> WheelOffset;
