@@ -203,21 +203,19 @@ void ACar::Steer(float Value)
 
 void ACar::WheelAnimations() 
 {
-	int Direction = 1;
+	int Direction;
+	float P = FVector::DotProduct(GetActorForwardVector(), GetVelocity());
 
-	if (FVector::DotProduct(GetVelocity(), GetActorForwardVector())) 
+	if (P > 0) 
 	{
 		Direction = 1;
 	}
-
-	else
-	{	
-		if (bIsGrounded) 
-		{
-			Direction = -1;
-
-		}
+	if (P < 0) 
+	{
+		Direction = -1;
 	}
+
+	//Can be ternary operator
 
 	for (int i = 0; i < WheelModels.Num(); i++) 
 	{
@@ -233,7 +231,7 @@ void ACar::WheelAnimations()
 			{
 				if (AccelerationValue != 0)
 				{
-					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-AccelerationValue * 10.0f, 0, 0)));
+					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-AccelerationValue * 10.0f * Direction, 0, 0)));
 				}
 				else
 				{
@@ -264,6 +262,9 @@ void ACar::WheelAnimations()
 	}
 	WheelComponents[0]->SetRelativeRotation(FQuat(FRotator(0, 25 * SteeringValue, 0)));
 	WheelComponents[1]->SetRelativeRotation(FQuat(FRotator(0, 25 * SteeringValue, 0)));
+
+	GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, FString::FromInt(P));
+
 }
 
 void ACar::Friction() 
