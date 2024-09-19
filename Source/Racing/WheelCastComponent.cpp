@@ -2,6 +2,7 @@
 
 
 #include "WheelCastComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
 
 // Sets default values for this component's properties
@@ -11,7 +12,6 @@ UWheelCastComponent::UWheelCastComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 	
-	
 }
 
 
@@ -20,7 +20,7 @@ void UWheelCastComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	
+
 	
 }
 
@@ -30,7 +30,8 @@ void UWheelCastComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	//GenerateRaycasts(DeltaTime);
+	GenerateRaycasts(DeltaTime);
+
 }
 
 void UWheelCastComponent::GenerateRaycasts(float DeltaTime) 
@@ -45,11 +46,20 @@ void UWheelCastComponent::GenerateRaycasts(float DeltaTime)
 		m_Force = m_Stiffness * (m_RestLength - m_Length);
 		m_DamperForce = m_DamperValue * m_Velocity;
 		m_SuspensionForce = (m_Force + m_DamperForce) * m_Hit.Normal;
-		//Car->CarMesh->AddForceAtLocation(m_SuspensionForce, m_Hit.Location);
+		Car->CarModel->AddForceAtLocation(m_SuspensionForce, m_Hit.Location);
 		GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("Hit"));
+		bWheelIsGrounded = true;
+
+		
+	}
+
+	else
+	{
+		bWheelIsGrounded = false;
 
 	}
 	DrawDebugLine(GetWorld(), GetComponentLocation(), EndLocation, FColor::Green, false, 0.0f);
 	
 }
+
 

@@ -54,6 +54,7 @@ public:
 	float AccelerationValue = 0.0f;
 	float SteeringValue = 0.0f;
 	float CurrentSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	bool bIsGrounded;
 	FVector GravityDirection;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -75,14 +76,13 @@ protected:
 	virtual void BeginPlay() override;
 	void DirectionCheck();
 	void SetupWheels();
-	void GenerateRaycasts(float DeltaTime);
 	void CameraLookUp(float Value);
 	void CameraLookRight(float Value);
 	void Steer(float Value);
 	void Accelerate(float Value);
 	void Friction();
 	void CounterSteer(float InputValue);
-	void WheelAnimations();
+	void UpdateWheels();
 
 	UFUNCTION()
 	void CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
@@ -90,18 +90,10 @@ protected:
 	void GroundedCheck();
 	void HandleGravity();
 	void HandleLanding();
+	void CarCrash(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	float QLerp(float f1, float f2, float LerpSpeed);
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TArray<float> WheelOffset;
-	TArray<float> m_Length;
-	TArray<float> m_LastLength;
-	TArray<float> m_Velocity;
-	TArray<float> m_DamperForce;
-	TArray<float> m_Force;
-	TArray<bool> m_bIsGrounded;
-	TArray<FVector> m_SuspensionForce;
-	TArray<FHitResult> m_Hit;
+	void DisablePlayerInput();
+	void EnablePlayerInput();
 
 };
 

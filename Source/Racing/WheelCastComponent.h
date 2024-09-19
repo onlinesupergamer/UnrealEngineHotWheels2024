@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Car.h"
 #include "WheelCastComponent.generated.h"
 
@@ -34,12 +35,19 @@ public:
 	float m_Force;
 	FVector m_SuspensionForce;
 	FHitResult m_Hit;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float WheelsRadius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HorizontalOffset = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bWheelIsGrounded;
 
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	void GenerateRaycasts(float DeltaTime);
+
 
 public:	
 	// Called every frame

@@ -3,6 +3,7 @@
 
 #include "Car.h"
 #include "DrawDebugHelpers.h"
+#include "WheelCastComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
 
@@ -11,16 +12,7 @@ ACar::ACar()
 
 	PrimaryActorTick.bCanEverTick = true;
 	WheelComponents.SetNum(4);
-	m_Length.SetNum(4);
-	m_LastLength.SetNum(4);
-	m_Velocity.SetNum(4);
-	m_DamperForce.SetNum(4);
-	m_Force.SetNum(4);
-	m_SuspensionForce.SetNum(4);
-	m_Hit.SetNum(4);
-	m_bIsGrounded.SetNum(4);
 	WheelModels.SetNum(4);
-	WheelOffset.SetNum(4);
 	HeadLights.SetNum(2);
 	//Headlight amount could be a variable for each car
 
@@ -57,15 +49,14 @@ void ACar::BeginPlay()
 void ACar::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	//DirectionCheck();
-	GenerateRaycasts(DeltaTime);
 	GroundedCheck();
 	HandleGravity();
 	Friction();
 	GetCarSpeed();
 	HandleLanding();
-	WheelAnimations();
+	UpdateWheels();
 
+	
 }
 
 void ACar::DirectionCheck()
@@ -87,15 +78,10 @@ void ACar::SetupWheels()
 	WheelComponents[2]->SetupAttachment(CarModel);
 	WheelComponents[3]->SetupAttachment(CarModel);
 
-	m_Length[0] = 0.0f;
-	m_Length[1] = 0.0f;
-	m_Length[2] = 0.0f;
-	m_Length[3] = 0.0f;
-
-	WheelModels[0] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Front Left Wheel"));
-	WheelModels[1] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Front Right Wheel"));
-	WheelModels[2] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Rear Left Wheel"));
-	WheelModels[3] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Rear Right Wheel"));
+	WheelModels[0] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Front Left Wheel Model"));
+	WheelModels[1] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Front Right Wheel Model"));
+	WheelModels[2] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Rear Left Wheel Model"));
+	WheelModels[3] = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Rear Right Wheel Model"));
 
 	WheelModels[0]->SetupAttachment(WheelComponents[0]);
 	WheelModels[1]->SetupAttachment(WheelComponents[1]);
@@ -115,54 +101,6 @@ void ACar::SetupWheels()
 
 }
 
-void ACar::GenerateRaycasts(float DeltaTime) 
-{
-	for (int i = 0; i < WheelComponents.Num(); i++) 
-	{
-
-		if (WheelComponents.Num() > 0) 
-		{
-			FVector EndLocation = WheelComponents[i]->GetComponentLocation() + (-WheelComponents[i]->GetUpVector() * RayDistance);
-
-
-			if (GetWorld()->LineTraceSingleByChannel(m_Hit[i], WheelComponents[i]->GetComponentLocation(), EndLocation, ECC_Visibility))
-			{
-				if (bIsGrounded)
-				{
-					bWasInAirLastFrame = false;
-				}
-
-				else 
-				{
-					bWasInAirLastFrame = true;
-
-				}
-
-				m_bIsGrounded[i] = true;
-				m_LastLength[i] = m_Length[i];
-				m_Length[i] = m_Hit[i].Distance;
-				m_Velocity[i] = (m_LastLength[i] - m_Length[i]) / DeltaTime;
-				m_Force[i] = Stiffness * (RestLength - m_Length[i]);
-				m_DamperForce[i] = DamperValue * m_Velocity[i];
-				m_SuspensionForce[i] = (m_Force[i] + m_DamperForce[i]) * m_Hit[i].Normal;
-				CarModel->AddForceAtLocation(m_SuspensionForce[i], m_Hit[i].Location);
-				FVector NewLocation = WheelModels[i]->GetRelativeLocation();
-				NewLocation.Z = -m_Length[i] + WheelOffset[i];
-				WheelModels[i]->SetRelativeLocation(NewLocation);
-			}
-
-			else 
-			{
-				m_bIsGrounded[i] = false;
-				FVector NewLocation = WheelModels[i]->GetRelativeLocation();
-				NewLocation.Z = -RayDistance + WheelOffset[i];
-				WheelModels[i]->SetRelativeLocation(NewLocation);
-			}
-
-			//DrawDebugLine(GetWorld(), WheelComponents[i]->GetComponentLocation(), EndLocation, FColor::Green, false, 0.0f);
-		}
-	}
-}
 
 void ACar::CameraLookUp(float Value) 
 {
@@ -178,15 +116,12 @@ void ACar::Accelerate(float Value)
 {
 	if (bIsGrounded) 
 	{
-
 		if (EngineCurve == nullptr) 
 		{
 			return;
 		}
 		CarModel->AddForce(GetActorForwardVector() * ((EngineTorque * EngineCurve->GetFloatValue(CurrentSpeed)) * Value), TEXT("None"), true);
-		//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, FString::SanitizeFloat(EngineCurve->GetFloatValue(CurrentSpeed)));
 	}
-
 	AccelerationValue = Value;
 }
 
@@ -197,74 +132,25 @@ void ACar::Steer(float Value)
 		CarModel->AddTorqueInRadians(GetActorUpVector() * (SteerTorque * Value), TEXT("None"), true);
 		CounterSteer(Value);
 	}
-
 	SteeringValue = Value;
 }
 
-void ACar::WheelAnimations() 
+void ACar::UpdateWheels() 
 {
-	int Direction;
-	float P = FVector::DotProduct(GetActorForwardVector(), GetVelocity());
-
-	if (P > 0) 
+	for (int i = 0; i < WheelComponents.Num(); i++) 
 	{
-		Direction = 1;
-	}
-	if (P < 0) 
-	{
-		Direction = -1;
-	}
-
-	//Can be ternary operator
-
-	for (int i = 0; i < WheelModels.Num(); i++) 
-	{
-		if (bIsGrounded) 
+		FVector WheelLocation = WheelModels[i]->GetRelativeLocation();
+		WheelLocation.Y = WheelComponents[i]->HorizontalOffset;
+		if (WheelComponents[i]->bWheelIsGrounded) 
 		{
-			if (i < 2)
-			{
-				float WheelCirc = 2 * 3.14f * WheelOffset[i];
-				float RotAmount = CurrentSpeed / WheelCirc;
-				WheelModels[i]->AddLocalRotation(FQuat(FRotator(-RotAmount * Direction, 0, 0)));
-			}
-			if (i > 1)
-			{
-				if (AccelerationValue != 0)
-				{
-					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-AccelerationValue * 10.0f * Direction, 0, 0)));
-				}
-				else
-				{
-					float WheelCirc = 2 * 3.14f * WheelOffset[i];
-					float RotAmount = CurrentSpeed / WheelCirc;
-					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-RotAmount * Direction, 0, 0)));
-				}
-			}
+			WheelLocation.Z = -WheelComponents[i]->m_Length + WheelComponents[i]->WheelsRadius;
 		}
 		else 
 		{
-			if (i > 1) 
-			{
-				if (AccelerationValue != 0) 
-				{
-					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-AccelerationValue * 10.0f, 0, 0)));
-				}
-				else 
-				{
-					WheelModels[i]->AddLocalRotation(FQuat(FRotator(-3.0f * Direction, 0, 0)));
-				}
-			}
-			if (i < 2) 
-			{
-				WheelModels[i]->AddLocalRotation(FQuat(FRotator(-3.0f * Direction, 0, 0)));
-			}
+			WheelLocation.Z = -WheelComponents[i]->RayDistance + WheelComponents[i]->WheelsRadius;
 		}
+		WheelModels[i]->SetRelativeLocation(WheelLocation);
 	}
-	WheelComponents[0]->SetRelativeRotation(FQuat(FRotator(0, 25 * SteeringValue, 0)));
-	WheelComponents[1]->SetRelativeRotation(FQuat(FRotator(0, 25 * SteeringValue, 0)));
-
-	GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, FString::FromInt(P));
-
 }
 
 void ACar::Friction() 
@@ -301,7 +187,7 @@ void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 		{
 			if (TDeg >= 120 && CurrentSpeed >= 1500)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, TEXT("High Speed Impact From Front While Grounded"));
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("High Speed Impact From Front While Grounded"));
 				float UpwardForce = FVector::DotProduct(GetActorUpVector(), GetVelocity());
 				float ForwardImpactForce = FVector::DotProduct(GetActorForwardVector(), GetVelocity());
 				float UpwardRotationalForce = FVector::DotProduct(GetActorRightVector(), CarModel->GetPhysicsAngularVelocityInRadians());
@@ -313,10 +199,8 @@ void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 				float ZVel = CarModel->GetPhysicsLinearVelocity().Z;
 				CarModel->SetPhysicsAngularVelocityInRadians(FVector(XRotVel,YRotVel,0));
 				CarModel->SetPhysicsLinearVelocity(FVector(0,YVel,0));
-				//CarModel->AddForce(-GetActorUpVector() * UpwardForce, TEXT("None"), true);
-				//CarModel->AddTorqueInRadians(-GetActorRightVector() * UpwardRotationalForce, TEXT("None"), true);
-				//CarModel->SetPhysicsAngularVelocityInRadians(-CarModel->GetRightVector() * 5.0f);
 				//Reduce Collision Impulse;
+				CarCrash(HitComp, OtherActor, OtherComp, NormalImpulse, Hit);
 			}
 		}
 
@@ -324,9 +208,27 @@ void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 		{
 			FVector PrevRotVelocity = CarModel->GetPhysicsAngularVelocityInRadians();
 		}
-		//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Yellow, FString::FromInt(TDeg));
 	}
+}
 
+void ACar::CarCrash(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	int idx = FMath::RandRange(0, 3);
+	WheelModels[idx]->SetVisibility(false);
+	
+	DisablePlayerInput();
+}
+
+void ACar::DisablePlayerInput() 
+{
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	ACar::DisableInput(PlayerController);
+}
+
+void ACar::EnablePlayerInput() 
+{
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	ACar::EnableInput(PlayerController);
 }
 
 void ACar::HandleLanding() 
@@ -347,7 +249,16 @@ void ACar::GetCarSpeed()
 }
 void ACar::GroundedCheck() 
 {
-	if (m_bIsGrounded[0] || m_bIsGrounded[1] || m_bIsGrounded[2] || m_bIsGrounded[3]) 
+	if (!WheelComponents.IsValidIndex(0)) 
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("None Found"));
+
+		return;
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("Found"));
+
+
+	if (WheelComponents[0]->bWheelIsGrounded || WheelComponents[1]->bWheelIsGrounded || WheelComponents[2]->bWheelIsGrounded || WheelComponents[3]->bWheelIsGrounded)
 	{
 		bIsGrounded = true;
 	}
