@@ -60,6 +60,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float GravityForce = 1500.0f;
 	bool bWasInAirLastFrame = false;
+	bool bIsCrashed = false;
+	bool bHasExploded = false;
+	float CrashTimer = 0.0f;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -68,7 +71,7 @@ public:
 	TArray<UStaticMeshComponent*> WheelModels;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<USpotLightComponent*> HeadLights;
-	
+	TArray<FVector> WheelModelLocations;
 
 
 protected:
@@ -82,7 +85,8 @@ protected:
 	void Accelerate(float Value);
 	void Friction();
 	void CounterSteer(float InputValue);
-	void UpdateWheels();
+	void UpdateWheelLocations();
+	void UpdateWheelRotations();
 
 	UFUNCTION()
 	void CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
@@ -94,6 +98,8 @@ protected:
 	float QLerp(float f1, float f2, float LerpSpeed);
 	void DisablePlayerInput();
 	void EnablePlayerInput();
+	void ExplodeCar();
+	void ExplosionCheck();
 
 };
 

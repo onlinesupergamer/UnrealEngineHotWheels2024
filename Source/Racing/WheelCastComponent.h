@@ -41,6 +41,12 @@ public:
 	float HorizontalOffset = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bWheelIsGrounded;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsSteer;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsDriveWheel;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsWheelActive = true;
 
 
 protected:

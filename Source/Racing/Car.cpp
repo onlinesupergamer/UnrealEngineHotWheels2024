@@ -14,6 +14,7 @@ ACar::ACar()
 	WheelComponents.SetNum(4);
 	WheelModels.SetNum(4);
 	HeadLights.SetNum(2);
+	WheelModelLocations.SetNum(4);
 	//Headlight amount could be a variable for each car
 
 	CarModel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Car Mesh"));
@@ -34,15 +35,12 @@ ACar::ACar()
 	CameraArm->CameraLagMaxDistance = 100.0f;
 	CarModel->SetNotifyRigidBodyCollision(true);
 
-
 }
 
 void ACar::BeginPlay()
 {
 	Super::BeginPlay();
 	CarModel->OnComponentHit.AddDynamic(this, &ACar::CollisionHandler);
-
-
 }
 
 
@@ -54,9 +52,11 @@ void ACar::Tick(float DeltaTime)
 	Friction();
 	GetCarSpeed();
 	HandleLanding();
-	UpdateWheels();
+	UpdateWheelLocations();
+	UpdateWheelRotations();
+	ExplosionCheck();
 
-	
+
 }
 
 void ACar::DirectionCheck()
@@ -114,6 +114,12 @@ void ACar::CameraLookRight(float Value)
 
 void ACar::Accelerate(float Value) 
 {
+	if (bIsCrashed)
+	{
+		AccelerationValue = 0;
+		return;
+	}
+
 	if (bIsGrounded) 
 	{
 		if (EngineCurve == nullptr) 
@@ -127,6 +133,13 @@ void ACar::Accelerate(float Value)
 
 void ACar::Steer(float Value) 
 {
+	if (bIsCrashed) 
+	{
+		SteeringValue = 0;
+
+		return;
+	}
+
 	if (bIsGrounded) 
 	{
 		CarModel->AddTorqueInRadians(GetActorUpVector() * (SteerTorque * Value), TEXT("None"), true);
@@ -135,22 +148,82 @@ void ACar::Steer(float Value)
 	SteeringValue = Value;
 }
 
-void ACar::UpdateWheels() 
+void ACar::UpdateWheelLocations() 
 {
 	for (int i = 0; i < WheelComponents.Num(); i++) 
 	{
-		FVector WheelLocation = WheelModels[i]->GetRelativeLocation();
-		WheelLocation.Y = WheelComponents[i]->HorizontalOffset;
+		WheelModelLocations[i] = WheelModels[i]->GetRelativeLocation();
+		WheelModelLocations[i].Y = WheelComponents[i]->HorizontalOffset;
+
 		if (WheelComponents[i]->bWheelIsGrounded) 
 		{
-			WheelLocation.Z = -WheelComponents[i]->m_Length + WheelComponents[i]->WheelsRadius;
+			WheelModelLocations[i].Z = -WheelComponents[i]->m_Length + WheelComponents[i]->WheelsRadius;
 		}
 		else 
 		{
-			WheelLocation.Z = -WheelComponents[i]->RayDistance + WheelComponents[i]->WheelsRadius;
+			WheelModelLocations[i].Z = -WheelComponents[i]->RayDistance + WheelComponents[i]->WheelsRadius;
 		}
-		WheelModels[i]->SetRelativeLocation(WheelLocation);
+		WheelModels[i]->SetRelativeLocation(WheelModelLocations[i]);
 	}
+}
+
+void ACar::UpdateWheelRotations() 
+{
+	for (int i = 0; i < WheelComponents.Num(); i++) 
+	{
+		FQuat WheelRotation;
+		float WheelCirc = 2 * 3.14 * WheelComponents[i]->WheelsRadius;
+		float RotationAmount = CurrentSpeed / WheelCirc;
+		if (WheelComponents[i]->bWheelIsGrounded) 
+		{
+			if (WheelComponents[i]->bIsDriveWheel)
+			{
+				if (AccelerationValue != 0) 
+				{
+					WheelRotation = FQuat(FRotator(-AccelerationValue * 10.0f, 0, 0));
+					WheelModels[i]->AddLocalRotation(WheelRotation);
+				}
+				else 
+				{
+					WheelRotation = FQuat(FRotator(-RotationAmount, 0, 0));
+					WheelModels[i]->AddLocalRotation(WheelRotation);
+				}
+			}
+			if (WheelComponents[i]->bIsSteer) 
+			{
+				WheelRotation = FQuat(FRotator(-RotationAmount, 0, 0));
+				WheelModels[i]->AddLocalRotation(WheelRotation);
+			}
+		}
+
+		else 
+		{
+			if (WheelComponents[i]->bIsDriveWheel)
+			{
+				if (AccelerationValue != 0)
+				{
+					WheelRotation = FQuat(FRotator(-AccelerationValue * 10.0f, 0, 0));
+					WheelModels[i]->AddLocalRotation(WheelRotation);
+				}
+				else
+				{
+					WheelRotation = FQuat(FRotator(-2, 0, 0));
+					WheelModels[i]->AddLocalRotation(WheelRotation);
+				}
+			}
+			if (WheelComponents[i]->bIsSteer)
+			{
+				WheelRotation = FQuat(FRotator(-2, 0, 0));
+				WheelModels[i]->AddLocalRotation(WheelRotation);
+			}
+		}
+
+		if (WheelComponents[i]->bIsSteer) 
+		{
+			WheelComponents[i]->SetRelativeRotation(FRotator(0, 25 * SteeringValue, 0));
+		}
+	}
+
 }
 
 void ACar::Friction() 
@@ -164,6 +237,11 @@ void ACar::Friction()
 
 void ACar::CounterSteer(float InputValue) 
 {
+	if (bIsCrashed)
+	{
+		return;
+	}
+
 	FVector RotationalVelocity = CarModel->GetPhysicsAngularVelocityInRadians();
 	float RotationSpeed = FVector::DotProduct(RotationalVelocity, GetActorUpVector());
 	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::SanitizeFloat(RotationSpeed));
@@ -207,28 +285,78 @@ void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 		if (!bIsGrounded) 
 		{
 			FVector PrevRotVelocity = CarModel->GetPhysicsAngularVelocityInRadians();
+
+			if (GetVelocity().Size() > 750.0f) 
+			{
+				CarCrash(HitComp, OtherActor, OtherComp, NormalImpulse, Hit);
+				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Crashed In Air"));
+
+			}
 		}
 	}
 }
 
 void ACar::CarCrash(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	int idx = FMath::RandRange(0, 3);
-	WheelModels[idx]->SetVisibility(false);
-	
-	DisablePlayerInput();
+	if (bIsCrashed) 
+	{
+		return;
+	}
+
+	UWheelCastComponent* ClosesWheel = nullptr;
+	UStaticMeshComponent* WheelMesh = nullptr;
+	float ClosestDistance = 500.0f;
+
+	for (int i = 0; i < WheelComponents.Num(); i++) 
+	{
+		float _Distance = FVector::Dist(WheelComponents[i]->GetComponentLocation(), Hit.Location);
+
+		if (_Distance < ClosestDistance) 
+		{
+			ClosestDistance = _Distance;
+			ClosesWheel = WheelComponents[i];
+			WheelMesh = WheelModels[i];
+		}
+
+	}
+
+	if (ClosesWheel != nullptr && ClosesWheel->bIsWheelActive) 
+	{
+		WheelMesh->SetVisibility(false);
+		ClosesWheel->bIsWheelActive = false;
+	}
+
+	bIsCrashed = true;
+
+}
+
+void ACar::ExplosionCheck() 
+{
+	if (bIsCrashed)
+	{
+		CrashTimer += 0.01f;
+
+		if (GetVelocity().Size() < 400.0f && !bHasExploded || CrashTimer >= 2.5f)
+		{
+			ExplodeCar();
+			bHasExploded = true;
+		}
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::FromInt(CrashTimer));
+
 }
 
 void ACar::DisablePlayerInput() 
 {
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-	ACar::DisableInput(PlayerController);
+	//APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	//ACar::DisableInput(PlayerController);
 }
 
 void ACar::EnablePlayerInput() 
 {
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-	ACar::EnableInput(PlayerController);
+	//APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	//ACar::EnableInput(PlayerController);
 }
 
 void ACar::HandleLanding() 
@@ -242,8 +370,7 @@ void ACar::HandleLanding()
 void ACar::GetCarSpeed() 
 {
 	float m_CurrentSpeed = FVector::DotProduct(GetVelocity(), GetActorForwardVector());
-	m_CurrentSpeed = FMath::Abs(FMath::TruncToInt(m_CurrentSpeed));
-	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::SanitizeFloat(m_CurrentSpeed));
+	m_CurrentSpeed = FMath::TruncToInt(m_CurrentSpeed);
 	CurrentSpeed = m_CurrentSpeed;
 
 }
@@ -251,12 +378,8 @@ void ACar::GroundedCheck()
 {
 	if (!WheelComponents.IsValidIndex(0)) 
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("None Found"));
-
 		return;
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("Found"));
-
 
 	if (WheelComponents[0]->bWheelIsGrounded || WheelComponents[1]->bWheelIsGrounded || WheelComponents[2]->bWheelIsGrounded || WheelComponents[3]->bWheelIsGrounded)
 	{
@@ -281,7 +404,25 @@ void ACar::HandleGravity()
 		GravityDirection = FVector(0, 0, -1);
 	}
 
+	if (bIsCrashed) 
+	{
+		GravityDirection = FVector(0, 0, -1);
+
+	}
+
 	CarModel->AddForce(GravityDirection * GravityForce, TEXT("None"), true);
+}
+
+void ACar::ExplodeCar()
+{
+	if (bHasExploded) 
+	{
+		return;
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Explode"));
+
+	this->Destroy();
+
 }
 
 void ACar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
