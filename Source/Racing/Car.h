@@ -60,6 +60,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float GravityForce = 1500.0f;
 	bool bWasInAirLastFrame = false;
+	bool bHasImpactThisFrame = false;
 	bool bIsCrashed = false;
 	bool bHasExploded = false;
 	float CrashTimer = 0.0f;
@@ -90,6 +91,7 @@ protected:
 
 	UFUNCTION()
 	void CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	void CollisionRelease();
 	void GetCarSpeed();
 	void GroundedCheck();
 	void HandleGravity();

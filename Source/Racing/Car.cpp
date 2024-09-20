@@ -41,6 +41,7 @@ void ACar::BeginPlay()
 {
 	Super::BeginPlay();
 	CarModel->OnComponentHit.AddDynamic(this, &ACar::CollisionHandler);
+	
 }
 
 
@@ -255,6 +256,12 @@ void ACar::CounterSteer(float InputValue)
 
 void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	
+	if (bHasImpactThisFrame) 
+	{
+		return;
+	}
+	bHasImpactThisFrame = true;
 	if (!OtherActor->ActorHasTag(TEXT("Track"))) 
 	{
 		float P = FVector::DotProduct(Hit.ImpactNormal, GetActorForwardVector());
@@ -294,6 +301,13 @@ void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 			}
 		}
 	}
+
+	bHasImpactThisFrame = false;
+}
+
+void ACar::CollisionRelease() 
+{
+
 }
 
 void ACar::CarCrash(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
@@ -421,7 +435,7 @@ void ACar::ExplodeCar()
 	}
 	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Explode"));
 
-	this->Destroy();
+	//this->Destroy();
 
 }
 
