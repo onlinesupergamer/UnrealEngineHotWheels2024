@@ -57,6 +57,7 @@ void ACar::Tick(float DeltaTime)
 	UpdateWheelLocations();
 	UpdateWheelRotations();
 	ExplosionCheck();
+	CameraHandler();
 
 	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Orange, FString::FromInt(CarModel->GetPhysicsAngularVelocity().Z));
 
@@ -107,6 +108,8 @@ void ACar::SetupWheels()
 
 void ACar::CameraLookUp(float Value) 
 {
+	return;
+
 	if (Value >= InputDeadZone || Value <= -InputDeadZone)
 	{
 		AddControllerPitchInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
@@ -116,6 +119,8 @@ void ACar::CameraLookUp(float Value)
 
 void ACar::CameraLookRight(float Value) 
 {
+	return;
+
 	if (Value >= InputDeadZone || Value <= - InputDeadZone) 
 	{
 		AddControllerYawInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
@@ -143,6 +148,21 @@ void ACar::Accelerate(float Value)
 		CarModel->AddForce(ProjectedNormal * ((EngineTorque * EngineCurve->GetFloatValue(CurrentSpeed)) * Value), TEXT("None"), true);
 	}
 	AccelerationValue = Value;
+}
+
+void ACar::CameraHandler() 
+{
+	if (bIsGrounded) 
+	{
+		CameraArm->bInheritPitch = true;
+		CameraArm->bInheritRoll = true;
+	}
+
+	else
+	{
+		CameraArm->bInheritPitch = false;
+		CameraArm->bInheritRoll = false;
+	}
 }
 
 void ACar::Steer(float Value) 

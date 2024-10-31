@@ -90,6 +90,7 @@ protected:
 	void CounterSteer(float InputValue);
 	void UpdateWheelLocations();
 	void UpdateWheelRotations();
+	void CameraHandler();
 
 	UFUNCTION()
 	void CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
