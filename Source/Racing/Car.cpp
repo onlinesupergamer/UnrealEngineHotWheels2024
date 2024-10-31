@@ -5,6 +5,7 @@
 #include "DrawDebugHelpers.h"
 #include "WheelCastComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "PhysXPublic.h"
 
 
 ACar::ACar()
@@ -57,6 +58,7 @@ void ACar::Tick(float DeltaTime)
 	UpdateWheelRotations();
 	ExplosionCheck();
 
+	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Orange, FString::FromInt(CarModel->GetPhysicsAngularVelocity().Z));
 
 }
 
@@ -105,12 +107,20 @@ void ACar::SetupWheels()
 
 void ACar::CameraLookUp(float Value) 
 {
-	AddControllerPitchInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
+	if (Value >= InputDeadZone || Value <= -InputDeadZone)
+	{
+		AddControllerPitchInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
+
+	}
 }
 
 void ACar::CameraLookRight(float Value) 
 {
-	AddControllerYawInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
+	if (Value >= InputDeadZone || Value <= - InputDeadZone) 
+	{
+		AddControllerYawInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
+
+	}
 }
 
 void ACar::Accelerate(float Value) 
@@ -127,7 +137,10 @@ void ACar::Accelerate(float Value)
 		{
 			return;
 		}
-		CarModel->AddForce(GetActorForwardVector() * ((EngineTorque * EngineCurve->GetFloatValue(CurrentSpeed)) * Value), TEXT("None"), true);
+		FVector DriveNormal = GroundNormal;
+		FVector ProjectedNormal = FVector::VectorPlaneProject(GetActorForwardVector(), GroundNormal);
+
+		CarModel->AddForce(ProjectedNormal * ((EngineTorque * EngineCurve->GetFloatValue(CurrentSpeed)) * Value), TEXT("None"), true);
 	}
 	AccelerationValue = Value;
 }
@@ -153,12 +166,21 @@ void ACar::UpdateWheelLocations()
 {
 	for (int i = 0; i < WheelComponents.Num(); i++) 
 	{
+		
+
 		WheelModelLocations[i] = WheelModels[i]->GetRelativeLocation();
 		WheelModelLocations[i].Y = WheelComponents[i]->HorizontalOffset;
 
 		if (WheelComponents[i]->bWheelIsGrounded) 
 		{
-			WheelModelLocations[i].Z = -WheelComponents[i]->m_Length + WheelComponents[i]->WheelsRadius;
+			if (!WheelComponents[i]->bWasInAirThisFrame) 
+			{
+				WheelModelLocations[i].Z = FMath::Lerp(WheelModelLocations[i].Z, -WheelComponents[i]->m_Length + WheelComponents[i]->WheelsRadius, 0.12f);
+			}
+			else if(WheelComponents[i]->bWasInAirThisFrame)
+			{
+				WheelModelLocations[i].Z = -WheelComponents[i]->m_Length + WheelComponents[i]->WheelsRadius;
+			}
 		}
 		else 
 		{
@@ -221,7 +243,7 @@ void ACar::UpdateWheelRotations()
 
 		if (WheelComponents[i]->bIsSteer) 
 		{
-			WheelComponents[i]->SetRelativeRotation(FRotator(0, 25 * SteeringValue, 0));
+			WheelComponents[i]->SetRelativeRotation(FRotator(0, 35 * SteeringValue, 0));
 		}
 	}
 
@@ -256,91 +278,14 @@ void ACar::CounterSteer(float InputValue)
 
 void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	/*
+		Do collision Things Here
+	*/
 	
-	if (bHasImpactThisFrame) 
-	{
-		return;
-	}
-	bHasImpactThisFrame = true;
-	if (!OtherActor->ActorHasTag(TEXT("Track"))) 
-	{
-		float P = FVector::DotProduct(Hit.ImpactNormal, GetActorForwardVector());
-		float T = FMath::Acos(P);
-		float TDeg = FMath::RadiansToDegrees(T);
-		
-		if (bIsGrounded) 
-		{
-			if (TDeg >= 120 && CurrentSpeed >= 1500)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("High Speed Impact From Front While Grounded"));
-				float UpwardForce = FVector::DotProduct(GetActorUpVector(), GetVelocity());
-				float ForwardImpactForce = FVector::DotProduct(GetActorForwardVector(), GetVelocity());
-				float UpwardRotationalForce = FVector::DotProduct(GetActorRightVector(), CarModel->GetPhysicsAngularVelocityInRadians());
-				float XRotVel = CarModel->GetPhysicsAngularVelocityInRadians().X;
-				float YRotVel = CarModel->GetPhysicsAngularVelocityInRadians().Y;
-				float ZRotVel = CarModel->GetPhysicsAngularVelocityInRadians().Z;
-				float XVel = CarModel->GetPhysicsLinearVelocity().X;
-				float YVel = CarModel->GetPhysicsLinearVelocity().Y;
-				float ZVel = CarModel->GetPhysicsLinearVelocity().Z;
-				CarModel->SetPhysicsAngularVelocityInRadians(FVector(XRotVel,YRotVel,0));
-				CarModel->SetPhysicsLinearVelocity(FVector(0,YVel,0));
-				//Reduce Collision Impulse;
-				CarCrash(HitComp, OtherActor, OtherComp, NormalImpulse, Hit);
-			}
-		}
-
-		if (!bIsGrounded) 
-		{
-			FVector PrevRotVelocity = CarModel->GetPhysicsAngularVelocityInRadians();
-
-			if (GetVelocity().Size() > 750.0f) 
-			{
-				CarCrash(HitComp, OtherActor, OtherComp, NormalImpulse, Hit);
-				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Crashed In Air"));
-
-			}
-		}
-	}
-
-	bHasImpactThisFrame = false;
-}
-
-void ACar::CollisionRelease() 
-{
-
-}
-
-void ACar::CarCrash(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-{
-	if (bIsCrashed) 
-	{
-		return;
-	}
-
-	UWheelCastComponent* ClosesWheel = nullptr;
-	UStaticMeshComponent* WheelMesh = nullptr;
-	float ClosestDistance = 500.0f;
-
-	for (int i = 0; i < WheelComponents.Num(); i++) 
-	{
-		float _Distance = FVector::Dist(WheelComponents[i]->GetComponentLocation(), Hit.Location);
-
-		if (_Distance < ClosestDistance) 
-		{
-			ClosestDistance = _Distance;
-			ClosesWheel = WheelComponents[i];
-			WheelMesh = WheelModels[i];
-		}
-
-	}
-
-	if (ClosesWheel != nullptr && ClosesWheel->bIsWheelActive) 
-	{
-		WheelMesh->SetVisibility(false);
-		ClosesWheel->bIsWheelActive = false;
-	}
-
-	bIsCrashed = true;
+	float UpForce = FVector::DotProduct(CarModel->GetUpVector(), NormalImpulse);
+	float SideForce = FVector::DotProduct(CarModel->GetRightVector(), NormalImpulse);
+	CarModel->AddForce(-CarModel->GetUpVector() * UpForce);
+	CarModel->AddForce(-CarModel->GetRightVector() * SideForce);
 
 }
 
@@ -357,7 +302,7 @@ void ACar::ExplosionCheck()
 		}
 	}
 
-	GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::FromInt(CrashTimer));
+	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::FromInt(CrashTimer));
 
 }
 
@@ -433,7 +378,7 @@ void ACar::ExplodeCar()
 	{
 		return;
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Explode"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Explode"));
 
 	//this->Destroy();
 

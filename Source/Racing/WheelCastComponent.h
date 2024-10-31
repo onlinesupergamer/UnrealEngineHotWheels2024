@@ -48,16 +48,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsWheelActive = true;
 
+	bool bWasInAirThisFrame;
+
+
+	
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	void GenerateRaycasts(float DeltaTime);
+	void GenerateSweepCasts(float DeltaTime);
+
+	
 
 
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
+
+
 };
+
+

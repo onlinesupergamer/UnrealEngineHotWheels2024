@@ -64,6 +64,8 @@ public:
 	bool bIsCrashed = false;
 	bool bHasExploded = false;
 	float CrashTimer = 0.0f;
+	float InputDeadZone = 0.15f;
+	FVector GroundNormal;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -91,12 +93,10 @@ protected:
 
 	UFUNCTION()
 	void CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-	void CollisionRelease();
 	void GetCarSpeed();
 	void GroundedCheck();
 	void HandleGravity();
 	void HandleLanding();
-	void CarCrash(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	float QLerp(float f1, float f2, float LerpSpeed);
 	void DisablePlayerInput();
 	void EnablePlayerInput();
