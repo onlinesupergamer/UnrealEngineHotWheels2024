@@ -32,10 +32,6 @@ void UWheelCastComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 void UWheelCastComponent::GenerateRaycasts(float DeltaTime) 
 {
-	if (!bIsWheelActive) 
-	{
-		return;
-	}
 
 	FVector EndLocation = GetComponentLocation() + (-GetUpVector() * RayDistance);
 
@@ -48,31 +44,18 @@ void UWheelCastComponent::GenerateRaycasts(float DeltaTime)
 		m_Force = m_Stiffness * (m_RestLength - m_Length);
 		m_DamperForce = m_DamperValue * m_Velocity;
 		m_SuspensionForce = (m_Force + m_DamperForce) * GetUpVector();
-
-		float g = (m_Length - 30) / (m_RestLength - 30);
-		float m = 1.0 - g;
-
-		
-		float SuspensionForceMultiplier = 1.0f;
-		float ModSusForceMult = (SuspensionForceMultiplier * (m * 2)) + 1.0f;
-		// Give proper variable names, this just adds extra suspension force to prevent bottoming out
 		
 		Car->GroundNormal = m_Hit.Normal;
-		Car->CarModel->AddForceAtLocation(m_SuspensionForce * ModSusForceMult, m_Hit.Location);
+		Car->CarModel->AddForceAtLocation(m_SuspensionForce, m_Hit.Location);
 		bWheelIsGrounded = true;
-		bWasInAirThisFrame = false;
-		
-		//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, FString::SanitizeFloat(ModSusForceMult));
-		
+
 	}
 
 	else
 	{
 		bWheelIsGrounded = false;
-		bWasInAirThisFrame = true;
-
 	}
-	//DrawDebugLine(GetWorld(), GetComponentLocation(), EndLocation, FColor::Green, false, 0.0f);
+
 	
 }
 

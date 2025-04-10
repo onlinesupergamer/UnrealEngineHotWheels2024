@@ -298,14 +298,7 @@ void ACar::CounterSteer(float InputValue)
 
 void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	/*
-		Do collision Things Here
-	*/
-	
-	float UpForce = FVector::DotProduct(CarModel->GetUpVector(), NormalImpulse);
-	float SideForce = FVector::DotProduct(CarModel->GetRightVector(), NormalImpulse);
-	CarModel->AddForce(-CarModel->GetUpVector() * UpForce);
-	CarModel->AddForce(-CarModel->GetRightVector() * SideForce);
+
 
 }
 
@@ -374,22 +367,17 @@ void ACar::GroundedCheck()
 
 void ACar::HandleGravity() 
 {
-	if (bIsGrounded && CurrentSpeed >= 650) 
+	if (bIsGrounded) 
 	{
-		GravityDirection = -GetActorUpVector();
+		CarModel->AddForce(-CarModel->GetUpVector() * 500.0f, TEXT("None"), true);
+
 	}
+
 	else 
 	{
-		GravityDirection = FVector(0, 0, -1);
-	}
-
-	if (bIsCrashed) 
-	{
-		GravityDirection = FVector(0, 0, -1);
+		CarModel->AddForce(FVector(0,0,-1) * 2500.0f, TEXT("None"), true);
 
 	}
-
-	CarModel->AddForce(GravityDirection * GravityForce, TEXT("None"), true);
 }
 
 void ACar::ExplodeCar()
