@@ -36,7 +36,7 @@ public:
 	FVector m_SuspensionForce;
 	FHitResult m_Hit;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float WheelsRadius;
+	float WheelRadius;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float HorizontalOffset = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -57,9 +57,7 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	void GenerateRaycasts(float DeltaTime);
-	void GenerateSweepCasts(float DeltaTime);
 
-	
 
 
 public:	

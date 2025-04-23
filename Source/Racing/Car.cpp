@@ -170,7 +170,6 @@ void ACar::Steer(float Value)
 	if (bIsCrashed) 
 	{
 		SteeringValue = 0;
-
 		return;
 	}
 
@@ -186,26 +185,18 @@ void ACar::UpdateWheelLocations()
 {
 	for (int i = 0; i < WheelComponents.Num(); i++) 
 	{
-		
-
 		WheelModelLocations[i] = WheelModels[i]->GetRelativeLocation();
 		WheelModelLocations[i].Y = WheelComponents[i]->HorizontalOffset;
 
 		if (WheelComponents[i]->bWheelIsGrounded) 
 		{
-			if (!WheelComponents[i]->bWasInAirThisFrame) 
-			{
-				WheelModelLocations[i].Z = FMath::Lerp(WheelModelLocations[i].Z, -WheelComponents[i]->m_Length + WheelComponents[i]->WheelsRadius, 0.12f);
-			}
-			else if(WheelComponents[i]->bWasInAirThisFrame)
-			{
-				WheelModelLocations[i].Z = -WheelComponents[i]->m_Length + WheelComponents[i]->WheelsRadius;
-			}
+			WheelModelLocations[i].Z = -WheelComponents[i]->m_Length - WheelComponents[i]->WheelRadius;
 		}
 		else 
 		{
-			WheelModelLocations[i].Z = -WheelComponents[i]->RayDistance + WheelComponents[i]->WheelsRadius;
+			
 		}
+		
 		WheelModels[i]->SetRelativeLocation(WheelModelLocations[i]);
 	}
 }
@@ -215,8 +206,9 @@ void ACar::UpdateWheelRotations()
 	for (int i = 0; i < WheelComponents.Num(); i++) 
 	{
 		FQuat WheelRotation;
-		float WheelCirc = 2 * 3.14 * WheelComponents[i]->WheelsRadius;
+		float WheelCirc = 2 * 3.14 * WheelComponents[i]->WheelRadius;
 		float RotationAmount = CurrentSpeed / WheelCirc;
+
 		if (WheelComponents[i]->bWheelIsGrounded) 
 		{
 			if (WheelComponents[i]->bIsDriveWheel)
@@ -310,7 +302,6 @@ void ACar::ExplosionCheck()
 
 		if (GetVelocity().Size() < 400.0f && !bHasExploded || CrashTimer >= 2.5f)
 		{
-			ExplodeCar();
 			bHasExploded = true;
 		}
 	}
@@ -361,7 +352,6 @@ void ACar::GroundedCheck()
 	else 
 	{
 		bIsGrounded = false;
-
 	}
 }
 
@@ -370,26 +360,31 @@ void ACar::HandleGravity()
 	if (bIsGrounded) 
 	{
 		CarModel->AddForce(-CarModel->GetUpVector() * 500.0f, TEXT("None"), true);
-
 	}
 
 	else 
 	{
 		CarModel->AddForce(FVector(0,0,-1) * 2500.0f, TEXT("None"), true);
-
 	}
 }
 
-void ACar::ExplodeCar()
+void ACar::DebugWheels()
 {
-	if (bHasExploded) 
+	bool bVisible = true;
+
+	for (int i = 0; i < WheelModels.Num(); i++) 
 	{
-		return;
+		if (bVisible) 
+		{
+			WheelModels[i]->SetVisibility(false);
+			bVisible = false;
+		}
+		else 
+		{
+			WheelModels[i]->SetVisibility(true);
+			bVisible = true;
+		}
 	}
-	//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Explode"));
-
-	//this->Destroy();
-
 }
 
 void ACar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -398,6 +393,7 @@ void ACar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("LookRight", this, &ACar::CameraLookRight);
 	PlayerInputComponent->BindAxis("Accelerate", this, &ACar::Accelerate);
 	PlayerInputComponent->BindAxis("Steer", this, &ACar::Steer);
+	PlayerInputComponent->BindAction("DebugWheel", IE_Pressed, this, &ACar::DebugWheels);
 }
 
 float ACar::QLerp(float f1, float f2, float LerpSpeed) 

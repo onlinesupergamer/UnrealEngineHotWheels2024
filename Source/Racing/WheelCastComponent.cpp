@@ -32,22 +32,27 @@ void UWheelCastComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 void UWheelCastComponent::GenerateRaycasts(float DeltaTime) 
 {
+	FVector SmoothingForce = FVector::ZeroVector;
+	FVector EndLocation = GetComponentLocation() + (-GetUpVector() * (RayDistance + WheelRadius));
 
-	FVector EndLocation = GetComponentLocation() + (-GetUpVector() * RayDistance);
 
-	if (GetWorld()->LineTraceSingleByChannel(m_Hit, GetComponentLocation(), EndLocation, ECC_Visibility)) 
+	if (GetWorld()->LineTraceSingleByChannel(m_Hit, GetComponentLocation(), EndLocation, ECC_Visibility))
 	{
-		
+		bWheelIsGrounded = true;
 		m_LastLength = m_Length;
-		m_Length = m_Hit.Distance;
+		m_Length = m_Hit.Distance - WheelRadius;
 		m_Velocity = (m_LastLength - m_Length) / DeltaTime;
 		m_Force = m_Stiffness * (m_RestLength - m_Length);
 		m_DamperForce = m_DamperValue * m_Velocity;
 		m_SuspensionForce = (m_Force + m_DamperForce) * GetUpVector();
 		
 		Car->GroundNormal = m_Hit.Normal;
+
+		SmoothingForce = (m_Force + m_DamperForce) * GetUpVector();
+		m_SuspensionForce = FMath::Lerp(m_SuspensionForce, SmoothingForce, 0.01f);
+
+
 		Car->CarModel->AddForceAtLocation(m_SuspensionForce, m_Hit.Location);
-		bWheelIsGrounded = true;
 
 	}
 
@@ -56,30 +61,8 @@ void UWheelCastComponent::GenerateRaycasts(float DeltaTime)
 		bWheelIsGrounded = false;
 	}
 
+	DrawDebugLine(GetWorld(), GetComponentLocation(), GetComponentLocation() + (-GetUpVector() * RayDistance), FColor::Red);
 	
-}
-
-void UWheelCastComponent::GenerateSweepCasts(float DeltaTime)
-{
-	if (!bIsWheelActive)
-	{
-		return;
-	}
-
-	FVector EndLocation = GetComponentLocation() + (-GetUpVector() * RayDistance);
-
-	if (GetWorld()->LineTraceSingleByChannel(m_Hit, GetComponentLocation(), EndLocation, ECC_Visibility))
-	{
-
-		
-
-	}
-
-	else
-	{
-		
-
-	}
 }
 
 

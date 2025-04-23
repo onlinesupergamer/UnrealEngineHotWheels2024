@@ -101,8 +101,8 @@ protected:
 	float QLerp(float f1, float f2, float LerpSpeed);
 	void DisablePlayerInput();
 	void EnablePlayerInput();
-	void ExplodeCar();
 	void ExplosionCheck();
+	void DebugWheels();
 
 };
 
