@@ -185,19 +185,7 @@ void ACar::UpdateWheelLocations()
 {
 	for (int i = 0; i < WheelComponents.Num(); i++) 
 	{
-		WheelModelLocations[i] = WheelModels[i]->GetRelativeLocation();
-		WheelModelLocations[i].Y = WheelComponents[i]->HorizontalOffset;
-
-		if (WheelComponents[i]->bWheelIsGrounded) 
-		{
-			WheelModelLocations[i].Z = -WheelComponents[i]->m_Length - WheelComponents[i]->WheelRadius;
-		}
-		else 
-		{
-			
-		}
 		
-		WheelModels[i]->SetRelativeLocation(WheelModelLocations[i]);
 	}
 }
 
