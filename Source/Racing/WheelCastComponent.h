@@ -50,6 +50,7 @@ public:
 
 	bool bWasInAirThisFrame;
 
+	float SuspensionMulti = 2.0f;
 
 	
 

@@ -26,8 +26,7 @@ void UWheelCastComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	GenerateRaycasts(DeltaTime);
-	//GenerateSweepCasts(DeltaTime);
+	//GenerateRaycasts(DeltaTime);
 }
 
 void UWheelCastComponent::GenerateRaycasts(float DeltaTime) 
@@ -35,34 +34,48 @@ void UWheelCastComponent::GenerateRaycasts(float DeltaTime)
 	FVector SmoothingForce = FVector::ZeroVector;
 	FVector EndLocation = GetComponentLocation() + (-GetUpVector() * (RayDistance + WheelRadius));
 
-
 	if (GetWorld()->LineTraceSingleByChannel(m_Hit, GetComponentLocation(), EndLocation, ECC_Visibility))
 	{
+
 		bWheelIsGrounded = true;
 		m_LastLength = m_Length;
 		m_Length = m_Hit.Distance - WheelRadius;
 		m_Velocity = (m_LastLength - m_Length) / DeltaTime;
 		m_Force = m_Stiffness * (m_RestLength - m_Length);
+
 		m_DamperForce = m_DamperValue * m_Velocity;
+
+		float SuspComp = 1.0f - (m_Length / RayDistance);
+
+		if (SuspComp >= 0.35f)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("Suspension Close To Bottoming Out"));
+			m_SuspensionForce = (((m_Force * 100.0f) + m_DamperForce)) * GetUpVector();
+		}
+
 		m_SuspensionForce = (m_Force + m_DamperForce) * GetUpVector();
+
 		
+		
+
 		Car->GroundNormal = m_Hit.Normal;
 
-		SmoothingForce = (m_Force + m_DamperForce) * GetUpVector();
-		m_SuspensionForce = FMath::Lerp(m_SuspensionForce, SmoothingForce, 0.01f);
-
-
 		Car->CarModel->AddForceAtLocation(m_SuspensionForce, m_Hit.Location);
+		
 
 	}
 
 	else
 	{
 		bWheelIsGrounded = false;
+		m_Length = RayDistance;
 	}
 
-	DrawDebugLine(GetWorld(), GetComponentLocation(), GetComponentLocation() + (-GetUpVector() * RayDistance), FColor::Red);
+	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Turquoise, FString::SanitizeFloat(SuspComp));
+
 	
+
+	DrawDebugSphere(GetWorld(), GetComponentLocation() + (-GetUpVector() * m_Length), WheelRadius, 16, FColor::White, false, 0.0f);
 }
 
 
