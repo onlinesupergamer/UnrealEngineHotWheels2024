@@ -98,6 +98,11 @@ void ACar::SetupWheels()
 	HeadLights[0]->SetupAttachment(CarModel);
 	HeadLights[1]->SetupAttachment(CarModel);
 
+	WheelModels[0]->SetRelativeLocation(WheelModelLocations[0]);
+	WheelModels[1]->SetRelativeLocation(WheelModelLocations[1]);
+	WheelModels[2]->SetRelativeLocation(WheelModelLocations[2]);
+	WheelModels[3]->SetRelativeLocation(WheelModelLocations[3]);
+
 	/*
 		This function could be optimized as a forloop
 		Maybe
@@ -108,8 +113,6 @@ void ACar::SetupWheels()
 
 void ACar::CameraLookUp(float Value) 
 {
-	return;
-
 	if (Value >= InputDeadZone || Value <= -InputDeadZone)
 	{
 		AddControllerPitchInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
@@ -119,8 +122,6 @@ void ACar::CameraLookUp(float Value)
 
 void ACar::CameraLookRight(float Value) 
 {
-	return;
-
 	if (Value >= InputDeadZone || Value <= - InputDeadZone) 
 	{
 		AddControllerYawInput((Value * 45.0f) * GetWorld()->DeltaTimeSeconds);
@@ -184,8 +185,18 @@ void ACar::Steer(float Value)
 void ACar::UpdateWheelLocations() 
 {
 	for (int i = 0; i < WheelComponents.Num(); i++) 
-	{
-		
+	{	
+		if (WheelComponents[i]->bWheelIsGrounded) 
+		{
+			WheelModelLocations[i].Z = -WheelComponents[i]->m_Hit.Distance + WheelComponents[i]->WheelRadius;
+			WheelModels[i]->SetRelativeLocation(WheelModelLocations[i]);
+		}
+
+		else 
+		{
+			WheelModelLocations[i].Z = QLerp(WheelModelLocations[i].Z, -WheelComponents[i]->RayDistance, 0.1f);
+			WheelModels[i]->SetRelativeLocation(WheelModelLocations[i]);
+		}
 	}
 }
 
@@ -279,6 +290,18 @@ void ACar::CounterSteer(float InputValue)
 void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, TEXT("Hit"));
+	FVector HitNormal = Hit.Normal;
+	float dot = FVector::DotProduct(NormalImpulse, CarModel->GetUpVector());
+
+
+	if (dot >= 0) 
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, TEXT("Hit From Bottom"));
+		FVector AngVel = HitComp->GetPhysicsAngularVelocityInRadians();
+	
+
+		//HitComp->AddAngularImpulseInRadians(-AngVel);
+	}
 
 
 }

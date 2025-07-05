@@ -26,12 +26,12 @@ void UWheelCastComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	//GenerateRaycasts(DeltaTime);
+	GenerateRaycasts(DeltaTime);
 }
 
 void UWheelCastComponent::GenerateRaycasts(float DeltaTime) 
 {
-	FVector SmoothingForce = FVector::ZeroVector;
+	//FVector SmoothingForce = FVector::ZeroVector;
 	FVector EndLocation = GetComponentLocation() + (-GetUpVector() * (RayDistance + WheelRadius));
 
 	if (GetWorld()->LineTraceSingleByChannel(m_Hit, GetComponentLocation(), EndLocation, ECC_Visibility))
@@ -47,16 +47,17 @@ void UWheelCastComponent::GenerateRaycasts(float DeltaTime)
 
 		float SuspComp = 1.0f - (m_Length / RayDistance);
 
-		if (SuspComp >= 0.35f)
+		if (SuspComp >= 0.3f)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("Suspension Close To Bottoming Out"));
-			m_SuspensionForce = (((m_Force * 100.0f) + m_DamperForce)) * GetUpVector();
+			m_SuspensionForce = ((m_Force + m_DamperForce) * 2.0f) * GetUpVector();
 		}
 
-		m_SuspensionForce = (m_Force + m_DamperForce) * GetUpVector();
+		else
+		{
+			m_SuspensionForce = (m_Force + m_DamperForce) * GetUpVector();
 
-		
-		
+		}
 
 		Car->GroundNormal = m_Hit.Normal;
 
@@ -75,7 +76,7 @@ void UWheelCastComponent::GenerateRaycasts(float DeltaTime)
 
 	
 
-	DrawDebugSphere(GetWorld(), GetComponentLocation() + (-GetUpVector() * m_Length), WheelRadius, 16, FColor::White, false, 0.0f);
+	//DrawDebugSphere(GetWorld(), GetComponentLocation() + (-GetUpVector() * m_Length), WheelRadius, 16, FColor::White, false, 0.0f);
 }
 
 

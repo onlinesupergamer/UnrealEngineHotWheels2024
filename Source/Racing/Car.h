@@ -74,6 +74,8 @@ public:
 	TArray<UStaticMeshComponent*> WheelModels;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<USpotLightComponent*> HeadLights;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<FVector> WheelModelLocations;
 
 
