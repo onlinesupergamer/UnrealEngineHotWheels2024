@@ -1,6 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+/*
+
+	If Car takes too much damage within a specific timeframe, then explode
+	Using a health system that resets back to full health after a second or two
+	Only explodes if the damage sources take all health within that timeframe
+
+
+
+*/
+
+
+
 #include "Car.h"
 #include "DrawDebugHelpers.h"
 #include "WheelCastComponent.h"
@@ -356,7 +368,7 @@ void ACar::GroundedCheck()
 		return;
 	}
 
-	if (WheelComponents[0]->bWheelIsGrounded || WheelComponents[1]->bWheelIsGrounded || WheelComponents[2]->bWheelIsGrounded || WheelComponents[3]->bWheelIsGrounded)
+	if (WheelComponents[0]->bWheelIsGrounded && WheelComponents[1]->bWheelIsGrounded && WheelComponents[2]->bWheelIsGrounded && WheelComponents[3]->bWheelIsGrounded)
 	{
 		bIsGrounded = true;
 	}
@@ -371,7 +383,7 @@ void ACar::HandleGravity()
 {
 	if (bIsGrounded) 
 	{
-		CarModel->AddForce(-CarModel->GetUpVector() * 500.0f, TEXT("None"), true);
+		CarModel->AddForce(-CarModel->GetUpVector() * 100.0f, TEXT("None"), true);
 	}
 
 	else 

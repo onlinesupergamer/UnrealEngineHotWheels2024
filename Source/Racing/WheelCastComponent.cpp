@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "WheelCastComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
@@ -47,10 +46,10 @@ void UWheelCastComponent::GenerateRaycasts(float DeltaTime)
 
 		float SuspComp = 1.0f - (m_Length / RayDistance);
 
-		if (SuspComp >= 0.3f)
+		if (SuspComp >= 0.1f)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("Suspension Close To Bottoming Out"));
-			m_SuspensionForce = ((m_Force + m_DamperForce) * 2.0f) * GetUpVector();
+			//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, TEXT("Suspension Close To Bottoming Out"));
+			m_SuspensionForce = ((m_Force + m_DamperForce) * 2.5f) * GetUpVector();
 		}
 
 		else
