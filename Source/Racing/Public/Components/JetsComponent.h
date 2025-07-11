@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../../Car.h"
 #include "JetsComponent.generated.h"
 
 
@@ -15,6 +16,7 @@ class RACING_API UJetsComponent : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	UJetsComponent();
+	class ACar* Car = Cast<class ACar>(GetOwner());
 
 protected:
 	// Called when the game starts

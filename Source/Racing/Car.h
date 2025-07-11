@@ -8,7 +8,7 @@
 #include "Components/SpotLightComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
-#include "PhysXPublicCore.h"
+#include "Public/Utils/CarEnums.h"
 #include "Car.generated.h"
 
 
@@ -67,6 +67,10 @@ public:
 	float InputDeadZone = 0.15f;
 	FVector GroundNormal;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool bHasJets = false;
+	bool bJetsActive = false;
+	ECarState CarState;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<class UWheelCastComponent*> WheelComponents;
@@ -93,6 +97,9 @@ protected:
 	void UpdateWheelLocations();
 	void UpdateWheelRotations();
 	void CameraHandler();
+	void ActivateAbility();
+	void JumpJets();
+	void JetTiltForward(float Value);
 
 	UFUNCTION()
 	void CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);

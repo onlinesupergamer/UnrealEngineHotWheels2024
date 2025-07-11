@@ -7,6 +7,7 @@
 	Using a health system that resets back to full health after a second or two
 	Only explodes if the damage sources take all health within that timeframe
 
+	Use Mouse to control car rotation when using the Jump Jets
 
 
 */
@@ -17,7 +18,9 @@
 #include "DrawDebugHelpers.h"
 #include "WheelCastComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "PhysXPublic.h"
+#include "DrawDebugHelpers.h"
+
+
 
 
 ACar::ACar()
@@ -48,6 +51,7 @@ ACar::ACar()
 	CameraArm->CameraLagMaxDistance = 100.0f;
 	CarModel->SetNotifyRigidBodyCollision(true);
 
+
 }
 
 void ACar::BeginPlay()
@@ -70,8 +74,14 @@ void ACar::Tick(float DeltaTime)
 	UpdateWheelRotations();
 	ExplosionCheck();
 	CameraHandler();
-
+	JumpJets();
 	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Orange, FString::FromInt(CarModel->GetPhysicsAngularVelocity().Z));
+	
+	if (CarState == ECarState::ABILITY) 
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Orange, TEXT("Enum Is On Ability!"));
+
+	}
 
 }
 
@@ -143,12 +153,6 @@ void ACar::CameraLookRight(float Value)
 
 void ACar::Accelerate(float Value) 
 {
-	if (bIsCrashed)
-	{
-		AccelerationValue = 0;
-		return;
-	}
-
 	if (bIsGrounded) 
 	{
 		if (EngineCurve == nullptr) 
@@ -161,6 +165,12 @@ void ACar::Accelerate(float Value)
 		CarModel->AddForce(ProjectedNormal * ((EngineTorque * EngineCurve->GetFloatValue(CurrentSpeed)) * Value), TEXT("None"), true);
 	}
 	AccelerationValue = Value;
+
+	if (bJetsActive) 
+	{
+		CarModel->AddForce((CarModel->GetForwardVector() * (Value * 500)), TEXT("None"), true);
+
+	}
 }
 
 void ACar::CameraHandler() 
@@ -180,17 +190,19 @@ void ACar::CameraHandler()
 
 void ACar::Steer(float Value) 
 {
-	if (bIsCrashed) 
-	{
-		SteeringValue = 0;
-		return;
-	}
-
 	if (bIsGrounded) 
 	{
 		CarModel->AddTorqueInRadians(GetActorUpVector() * (SteerTorque * Value), TEXT("None"), true);
 		CounterSteer(Value);
 	}
+
+	if (bJetsActive) 
+	{
+		CarModel->AddTorqueInRadians(GetActorUpVector() * (5 * Value), TEXT("None"), true);
+		CounterSteer(Value);
+
+	}
+
 	SteeringValue = Value;
 }
 
@@ -283,18 +295,12 @@ void ACar::Friction()
 
 void ACar::CounterSteer(float InputValue) 
 {
-	if (bIsCrashed)
-	{
-		return;
-	}
-
 	FVector RotationalVelocity = CarModel->GetPhysicsAngularVelocityInRadians();
 	float RotationSpeed = FVector::DotProduct(RotationalVelocity, GetActorUpVector());
-	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::SanitizeFloat(RotationSpeed));
 	if (InputValue == 0) 
 	{
 		CarModel->AddTorqueInRadians((-GetActorUpVector() * RotationSpeed) * 5.0f, TEXT("None"), true);
-		//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Cyan, TEXT("No Steering Input"));
+	
 	}
 
 }
@@ -320,30 +326,18 @@ void ACar::CollisionHandler(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 
 void ACar::ExplosionCheck() 
 {
-	if (bIsCrashed)
-	{
-		CrashTimer += 0.01f;
 
-		if (GetVelocity().Size() < 400.0f && !bHasExploded || CrashTimer >= 2.5f)
-		{
-			bHasExploded = true;
-		}
-	}
-
-	//GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::FromInt(CrashTimer));
 
 }
 
 void ACar::DisablePlayerInput() 
 {
-	//APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-	//ACar::DisableInput(PlayerController);
+
 }
 
 void ACar::EnablePlayerInput() 
 {
-	//APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-	//ACar::EnableInput(PlayerController);
+
 }
 
 void ACar::HandleLanding() 
@@ -371,16 +365,26 @@ void ACar::GroundedCheck()
 	if (WheelComponents[0]->bWheelIsGrounded && WheelComponents[1]->bWheelIsGrounded && WheelComponents[2]->bWheelIsGrounded && WheelComponents[3]->bWheelIsGrounded)
 	{
 		bIsGrounded = true;
+		CarState = ECarState::DRIVING;
 	}
 
 	else 
 	{
 		bIsGrounded = false;
+		CarState = ECarState::FALLING;
+
 	}
+
+	
 }
 
 void ACar::HandleGravity() 
 {
+	if (CarState == ECarState::ABILITY) 
+	{
+		return;
+	}
+
 	if (bIsGrounded) 
 	{
 		CarModel->AddForce(-CarModel->GetUpVector() * 100.0f, TEXT("None"), true);
@@ -411,6 +415,76 @@ void ACar::DebugWheels()
 	}
 }
 
+void ACar::ActivateAbility()
+{
+	if (bHasJets) 
+	{
+		//The jets should line the car with world up slowly
+
+		if (!bJetsActive) 
+		{
+			//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, TEXT("Jump"));
+			CarModel->SetPhysicsAngularVelocity(FVector(0, 0, CarModel->GetPhysicsAngularVelocity().Z));
+			//CarModel->AddImpulse(CarModel->GetUpVector() * 850.0f, TEXT("None"), true);
+			bJetsActive = true;
+		}
+		else 
+		{
+			bJetsActive = false;
+
+		}
+
+	}
+	
+}
+
+void ACar::JumpJets()
+{
+	if (bJetsActive) 
+	{
+		FHitResult m_Hit;
+		FVector EndLocation = GetActorLocation() + (-GetActorUpVector() * 160.0f);
+
+		CarState = ECarState::ABILITY;
+
+		if (GetWorld()->LineTraceSingleByChannel(m_Hit, GetActorLocation(), EndLocation, ECC_Visibility)) 
+		{
+			FVector HitLocation;
+			HitLocation = m_Hit.ImpactPoint;
+			
+			FVector HoverLocation = HitLocation + (m_Hit.Normal * 150.0f);
+			//SetActorLocation(HoverLocation);
+
+			CarModel->AddImpulse(m_Hit.Normal * 100.0f, TEXT("None"), true);
+
+		}
+
+		else 
+		{
+			/*
+				 Force Car to flip using World Up		
+			
+			
+			*/
+			FVector CarRotation = GetActorRotation().Vector();
+
+
+		}
+
+		DrawDebugLine(GetWorld(), GetActorLocation(), EndLocation, FColor::Purple, false, 0.0f);
+	}
+
+}
+
+void ACar::JetTiltForward(float Value)
+{
+	if (bJetsActive) 
+	{
+		//CarModel->AddRelativeRotation(FQuat(1,0,0,0));
+	}
+}
+
+
 void ACar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	PlayerInputComponent->BindAxis("LookUp", this, &ACar::CameraLookUp);
@@ -418,6 +492,10 @@ void ACar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("Accelerate", this, &ACar::Accelerate);
 	PlayerInputComponent->BindAxis("Steer", this, &ACar::Steer);
 	PlayerInputComponent->BindAction("DebugWheel", IE_Pressed, this, &ACar::DebugWheels);
+	PlayerInputComponent->BindAction("Ability", IE_Pressed, this, &ACar::ActivateAbility);
+	PlayerInputComponent->BindAction("Ability", IE_Released, this, &ACar::ActivateAbility);
+	PlayerInputComponent->BindAxis("JetsTiltForward", this, &ACar::JetTiltForward);
+	//////////GRAPPLE AIM
 }
 
 float ACar::QLerp(float f1, float f2, float LerpSpeed) 
