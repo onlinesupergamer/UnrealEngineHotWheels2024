@@ -155,10 +155,11 @@ void ACar::Accelerate(float Value)
 {
 	if (bIsGrounded) 
 	{
-		if (EngineCurve == nullptr) 
+		if (EngineCurve == ((void*)0))
 		{
 			return;
 		}
+
 		FVector DriveNormal = GroundNormal;
 		FVector ProjectedNormal = FVector::VectorPlaneProject(GetActorForwardVector(), GroundNormal);
 
